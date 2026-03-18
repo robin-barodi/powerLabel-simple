@@ -1,0 +1,134 @@
+<Window x:Class="powerLabel.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:powerLabel"
+        mc:Ignorable="d"
+        Title="powerLabel" Height="500" Width="800">
+
+    <Grid>
+        <Grid>
+            <TabControl>
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="Images/isometrix pixel art printer.png" Height="16" Width="16" />
+                            <TextBlock Text="Label Printing" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </TabItem.Header>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+
+                        <Button x:Name="scanButton"
+                                Click="scanButton_Click"
+                                Grid.RowSpan="2"
+                                Width="100"
+                                Height="100">
+                            <TextBlock TextWrapping="Wrap"
+                                       FontSize="28"
+                                       TextAlignment="Center"
+                                       Text="Scan System"/>
+                        </Button>
+
+                        <Grid x:Name="leftPanelGrid" Grid.RowSpan="2" Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="22*"/>
+                                <ColumnDefinition Width="375*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Line X1="10" Y1="30" X2="10" Y2="450" Stroke="Black" StrokeThickness="1" Grid.Column="0"/>
+
+                            <StackPanel Grid.Column="1" Margin="5">
+                                <Label Content="System Info" FontSize="20"/>
+                                <TextBlock x:Name="systemInfoText" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid x:Name="rightBottomGrid" Grid.Row="1" Grid.Column="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="3*"/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel>
+                                <Label Content="Print Label" FontSize="22"/>
+                                <Viewbox Margin="5" Grid.Row="1" Stretch="Uniform">
+                                    <Border BorderBrush="#FFD3CFCF" BorderThickness="1" CornerRadius="1">
+                                        <Grid Name="labelGrid" Width="58" Height="32">
+                                            <TextBlock FontSize="4" Name="labelText" TextWrapping="WrapWithOverflow"/>
+                                        </Grid>
+                                    </Border>
+                                </Viewbox>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Bottom">
+                                <CheckBox x:Name="boldCheckbox"
+                                          IsChecked="True"
+                                          Content="Bold"
+                                          Checked="boldCheckbox_Changed"
+                                          Unchecked="boldCheckbox_Changed"/>
+                                <CheckBox IsEnabled="False" Content="+Servicelabel"/>
+                                <Button x:Name="printBtn"
+                                        IsEnabled="False"
+                                        Content="Print Label"
+                                        Click="printBtn_Click"
+                                        Margin="10"
+                                        Padding="10,5"/>
+                            </StackPanel>
+                        </Grid>
+
+                    </Grid>
+                </TabItem>
+
+                <TabItem Visibility="Visible">
+                    <TabItem.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="Images/isometrix pixel art pc high res.png" Height="16" Width="16"/>
+                            <TextBlock Text="Advanced Specs" FontSize="12" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </TabItem.Header>
+
+                    <Grid Name="AdvancedSpecsGrid" Margin="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <ComboBox Name="partSelector" SelectionChanged="partSelector_SelectionChanged">
+                                <ComboBoxItem Content="Motherboard"/>
+                                <ComboBoxItem Content="Bios"/>
+                                <ComboBoxItem Content="Processor"/>
+                                <ComboBoxItem Content="Memory"/>
+                                <ComboBoxItem Content="Disks"/>
+                                <ComboBoxItem Content="VideoController"/>
+                                <ComboBoxItem Content="Operating System"/>
+                            </ComboBox>
+
+                            <ListBox x:Name="componentListBox" SelectionChanged="componentListBox_SelectionChanged"/>
+                        </StackPanel>
+
+                        <Grid Grid.Column="1" Name="componentGrid">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                        </Grid>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </Grid>
+
+        <Button x:Name="settingsBtn" Click="settingsBtn_Click" Padding="0" BorderBrush="Transparent" Background="Transparent" VerticalAlignment="Top" HorizontalAlignment="Right" Height="22" Width="22">
+            <Image Source="Images/settings.png" Height="22" />
+        </Button>
+    </Grid>
+</Window>
