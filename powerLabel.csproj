@@ -32,7 +32,6 @@
     <None Remove="Images\settings.png" />
     <None Remove="Images\tower-pc.png" />
     <None Remove="settings.json" />
-    <None Remove="versions.xml" />
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="WbemScripting">
@@ -59,7 +58,6 @@
     <PackageReference Include="Microsoft.DotNet.UpgradeAssistant.Extensions.Default.Analyzers" Version="0.4.355802">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Windows.Compatibility" Version="7.0.0" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ReachFramework" />
@@ -89,9 +87,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
     <Resource Include="settings.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="versions.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
   </ItemGroup>
