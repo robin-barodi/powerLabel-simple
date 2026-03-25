@@ -11,16 +11,18 @@ namespace powerLabel
             public string printerShareName { get; set; }
         }
 
+        private static string SettingsPath =>
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+
         public static void WriteSettings(Settings settings)
         {
             string jsonString = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText("settings.json", jsonString);
+            File.WriteAllText(SettingsPath, jsonString);
         }
 
         public static Settings ReadSettings()
         {
-            string fileName = "settings.json";
-            if (!File.Exists(fileName))
+            if (!File.Exists(SettingsPath))
             {
                 var defaults = new Settings();
                 WriteSettings(defaults);
@@ -28,7 +30,7 @@ namespace powerLabel
             }
             try
             {
-                string jsonString = File.ReadAllText(fileName);
+                string jsonString = File.ReadAllText(SettingsPath);
                 return JsonSerializer.Deserialize<Settings>(jsonString) ?? new Settings();
             }
             catch (Exception)
