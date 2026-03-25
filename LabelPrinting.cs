@@ -16,16 +16,10 @@ namespace powerLabel
                 if (e == null)
                     return;
 
-                string printerShareName = SettingsHandler.ReadSettings().printerShareName;
-                if (string.IsNullOrWhiteSpace(printerShareName))
-                {
-                    MessageBox.Show("No printer configured. Please set the Printer Share Name in Settings.");
-                    return;
-                }
+                string printerShareName = "labelPrinter";
 
                 PrintDialog pd = new PrintDialog();
 
-                // Find the local printer by share name
                 PrintServer localServer = new PrintServer();
                 PrintQueueCollection queues = localServer.GetPrintQueues();
                 PrintQueue targetQueue = null;
@@ -41,33 +35,26 @@ namespace powerLabel
 
                 if (targetQueue == null)
                 {
-                    MessageBox.Show($"Printer '{printerShareName}' not found on this machine. Make sure it is installed locally.");
+                    MessageBox.Show($"Printer '{printerShareName}' not found on this machine.");
                     return;
                 }
 
                 pd.PrintQueue = targetQueue;
                 pd.PrintTicket.PageMediaSize = new PageMediaSize(216, 120);
 
-                // Store original scale
                 Transform originalScale = e.LayoutTransform;
-
-                // Get selected printer capabilities
                 PrintCapabilities capabilities = pd.PrintQueue.GetPrintCapabilities(pd.PrintTicket);
 
-                // Get scale of the print wrt to screen of WPF visual
                 double scale = Math.Min(
                     capabilities.PageImageableArea.ExtentWidth / e.ActualWidth,
                     capabilities.PageImageableArea.ExtentHeight / e.ActualHeight);
 
-                // Transform the Visual to scale
                 e.LayoutTransform = new ScaleTransform(scale, scale);
 
-                // Get the size of the printer page
                 System.Windows.Size sz = new System.Windows.Size(
                     capabilities.PageImageableArea.ExtentWidth,
                     capabilities.PageImageableArea.ExtentHeight);
 
-                // Update the layout of the visual to the printer page size
                 e.Measure(sz);
                 e.Arrange(new System.Windows.Rect(
                     new System.Windows.Point(
@@ -75,10 +62,7 @@ namespace powerLabel
                         capabilities.PageImageableArea.OriginHeight),
                     sz));
 
-                // Print the visual
                 pd.PrintVisual(grid, "My Print");
-
-                // Restore original transform
                 e.LayoutTransform = originalScale;
             }
             catch (Exception ex)
