@@ -21,12 +21,10 @@ namespace powerLabel
         {
             var processInfo = new System.Diagnostics.ProcessStartInfo
             {
-                Verb = "runas",
-                LoadUserProfile = true,
                 FileName = "powershell.exe",
                 Arguments = command,
                 RedirectStandardOutput = false,
-                UseShellExecute = true,
+                UseShellExecute = false,
                 CreateNoWindow = true
             };
 
