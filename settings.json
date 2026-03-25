@@ -1,14 +1,3 @@
 {
-  "employees": [
-    "Siem",
-    "Ben",
-    "Robin",
-    "Ceylan"
-  ],
-  "printerHost": "HP-Z400",
-  "printerShareName": "labelPrinter",
-  "databaseIP": "10.20.0.11",
-  "databaseName": "powerlabeldb",
-  "databaseUser": "root",
-  "databasePass": "Welkom01!"
+  "printerShareName": "labelPrinter"
 }

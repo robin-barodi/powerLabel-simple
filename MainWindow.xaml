@@ -44,14 +44,15 @@
             <Viewbox Grid.Row="1" Margin="5" Stretch="Uniform">
                 <Border BorderBrush="#FFD3CFCF" BorderThickness="1" CornerRadius="1">
                     <Grid Name="labelGrid" Width="58" Height="32">
-                        <TextBlock FontSize="4" Name="labelText" TextWrapping="WrapWithOverflow" Margin="2"/>
+                        <TextBlock FontSize="4" Name="labelText" TextWrapping="WrapWithOverflow" Margin="2" TextAlignment="Left"/>
                     </Grid>
                 </Border>
             </Viewbox>
 
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="5">
                 <CheckBox x:Name="boldCheckbox" Content="Bold" VerticalAlignment="Center" Margin="0,0,10,0"
-                          Checked="boldCheckbox_Changed" Unchecked="boldCheckbox_Changed"/>
+                    IsChecked="True"
+                    Checked="boldCheckbox_Changed" Unchecked="boldCheckbox_Changed"/>
                 <Button x:Name="printBtn" Click="printBtn_Click" IsEnabled="False" Width="80" Height="30" Content="Print"/>
             </StackPanel>
         </Grid>

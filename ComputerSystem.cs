@@ -36,16 +36,17 @@ namespace powerLabel
             // Model
             string modelString = motherboard.model;
             modelString = getShortString(modelString, new string[] {
-                @"(?<ZLine>HP Z\w+) (?<Stupidname>Firefly|Power|Fury|Studio|Mini)*(?:(?!G)[a-zA-Z ])*(?<screensize>\d{2}\w?)?(?:(?![G])[A-Za-z .\d])*(?<generation>G\d+)?",
-                @"Precision \w* \w*"
-            });
+        @"(?<ZLine>HP Z\w+) (?<Stupidname>Firefly|Power|Fury|Studio|Mini)*(?:(?!G)[a-zA-Z ])*(?<screensize>\d{2}\w?)?(?:(?![G])[A-Za-z .\d])*(?<generation>G\d+)?",
+        @"(Precision \w+ \w+)",
+        @"(OptiPlex|Vostro|Latitude|XPS|Inspiron|Tower|ProDesk|EliteDesk|Z\d) *(\w+)"
+    });
 
             // CPU
             string cpuString = processor.name;
             cpuString = getShortString(cpuString, new string[] {
-                @"(Platinum|Gold|Silver|Bronze)(?: )(\w*-*\d+\w*)",
-                @"(\w+-*\d{3,}\w*)(?: )*(v\d)*",
-            });
+        @"(Platinum|Gold|Silver|Bronze)(?: )(\w*-*\d+\w*)",
+        @"(\w+-*\d{3,}\w*)(?: )*(v\d)*",
+    });
             if (processorAmount > 1)
                 cpuString = cpuString.Insert(0, "2x ");
 
@@ -54,7 +55,7 @@ namespace powerLabel
                 + "GB (" + memoryModules.Count + ") "
                 + MemoryModule.memoryTypeLookup[memoryModules.First().module.memoryType];
 
-            // Disks
+            // Disks — one per line, OS disk first (already sorted by DiskConfig.GetDisks)
             string diskString = "";
             List<string> disks = new List<string>();
             List<string> doneDisks = new List<string>();
@@ -65,23 +66,31 @@ namespace powerLabel
                 if (!doneDisks.Any(a => a == disk))
                 {
                     int count = disks.Where(a => a == disk).Count();
-                    diskString += (count > 1 ? $"{count}x " : "") + disk + ".";
+                    diskString += (count > 1 ? $"{count}x " : "") + disk.Trim() + "\r\n";
                     doneDisks.Add(disk);
                 }
             }
 
-            // GPU
+            // GPU — filter out integrated Intel/AMD graphics
             string gpuString = "";
             foreach (VideoControllerConfig gpu in videoControllerConfigs)
             {
-                gpuString += getShortString(gpu.videoController.name, new string[] {
-                    @"\w{2,3} Graphics \w+",
-                    @"(Quadro|RTX) *(\w+) ?(\d+)?",
-                    @"(GeForce) (\wTX?) (\d{3,})(?: (\w+))*"
-                }) + "\r\n";
+                string name = gpu.videoController.name ?? "";
+                if (name.Contains("Intel") || name.Contains("AMD Radeon(TM)") ||
+                    name.Contains("UHD Graphics") || name.Contains("HD Graphics"))
+                    continue;
+
+                string shortName = getShortString(name, new string[] {
+            @"(Quadro|RTX|NVS) *(\w+) ?(\d+)?",
+            @"(GeForce) (\wTX?) (\d{3,})(?: (\w+))*"
+        });
+                gpuString += shortName + "\r\n";
             }
 
-            return modelString + "\r\n." + cpuString + " | " + ramString + "\r\n." + diskString + " ." + gpuString + operatingSystem.caption + " " + operatingSystem.language;
+            return modelString + "\r\n"
+                + cpuString + " | " + ramString + "\r\n"
+                + diskString
+                + gpuString.TrimEnd();
         }
 
         public static string getShortString(string input, string[] patterns)
