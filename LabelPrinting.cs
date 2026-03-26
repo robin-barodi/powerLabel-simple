@@ -1,5 +1,4 @@
 using System;
-using System.Management;
 using System.Printing;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,7 +21,7 @@ namespace powerLabel
                     New-ItemProperty -Path '{RPCPath}' -Name 'RpcUseNamedPipeProtocol' -Value 1 -PropertyType DWORD -Force | Out-Null
                     Set-SmbClientConfiguration -EnableInsecureGuestLogons $true -Force
                     Set-SmbClientConfiguration -RequireSecuritySignature $false -Force
-                    Add-Printer -ConnectionName '\\{printerHost}\{printerShareName}'
+                    Add-Printer -ConnectionName '\\\\{printerHost}\\{printerShareName}'
                 ";
                 PSInterface.RunPowershell(setup);
 
@@ -63,7 +62,7 @@ namespace powerLabel
                 e.LayoutTransform = originalScale;
 
                 string teardown = $@"
-                    Remove-Printer -Name '\\{printerHost}\{printerShareName}' -ErrorAction SilentlyContinue
+                    Remove-Printer -Name '\\\\{printerHost}\\{printerShareName}' -ErrorAction SilentlyContinue
                     New-ItemProperty -Path '{RPCPath}' -Name 'RpcUseNamedPipeProtocol' -Value 0 -PropertyType DWORD -Force | Out-Null
                     Set-SmbClientConfiguration -EnableInsecureGuestLogons $false -Force
                     Set-SmbClientConfiguration -RequireSecuritySignature $true -Force
