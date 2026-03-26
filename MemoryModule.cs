@@ -18,12 +18,12 @@ namespace powerLabel
             [20] = "DDR2 FB-DIMM",
             [24] = "DDR3",
             [26] = "DDR4",
-            [27] = "LPDDR",
-            [28] = "LPDDR2",
-            [29] = "LPDDR3",
-            [30] = "LPDDR4",
+            [27] = "DDR",
+            [28] = "DDR2",
+            [29] = "DDR3",
+            [30] = "DDR4",
             [34] = "DDR5",
-            [35] = "LPDDR5"
+            [35] = "DDR5"
         };
 
         public string partNubmer { get; set; }
