@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Management;
+using System.Text;
 
 namespace powerLabel
 {
@@ -21,15 +22,14 @@ namespace powerLabel
 
         public static void RunPowershell(string command)
         {
-            if (string.IsNullOrWhiteSpace(command))
-            {
-                return;
-            }
+            if (string.IsNullOrWhiteSpace(command)) return;
+
+            string encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(command));
 
             ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = "powershell.exe",
-                Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{command.Replace("\"", "\\\"")}\"",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -EncodedCommand {encoded}",
                 Verb = "runas",
                 UseShellExecute = true,
                 CreateNoWindow = true,
@@ -39,16 +39,12 @@ namespace powerLabel
             using (Process process = Process.Start(psi))
             {
                 if (process == null)
-                {
                     throw new Exception("Failed to start PowerShell process.");
-                }
 
                 process.WaitForExit();
 
                 if (process.ExitCode != 0)
-                {
                     throw new Exception($"PowerShell command failed with exit code {process.ExitCode}.\r\nCommand: {command}");
-                }
             }
         }
     }
