@@ -6,15 +6,13 @@ namespace powerLabel
     {
         public int id { get; set; }
         public ulong capacity { get; set; }
-
         public uint maxClockspeed { get; set; }
-
-        public uint formFactor { get; set; }          // 8 -> DIMM  12 -> SODIMM https://docs.microsoft.com/en-us/windows/win32/cimwin32prov/cim-chip
-
-        public uint memoryType { get; set; }          // https://www.dmtf.org/sites/default/files/standards/documents/DSP0134_3.2.0.pdf Table 76
+        public uint formFactor { get; set; } // 8 -> DIMM 12 -> SODIMM
+        public uint memoryType { get; set; }
 
         public static Dictionary<uint, string> memoryTypeLookup = new Dictionary<uint, string>()
         {
+            [0] = "Unknown",
             [18] = "DDR",
             [19] = "DDR2",
             [20] = "DDR2 FB-DIMM",
@@ -23,7 +21,9 @@ namespace powerLabel
             [27] = "LPDDR",
             [28] = "LPDDR2",
             [29] = "LPDDR3",
-            [30] = "LPDDR4"
+            [30] = "LPDDR4",
+            [34] = "DDR5",
+            [35] = "LPDDR5"
         };
 
         public string partNubmer { get; set; }
@@ -34,17 +34,13 @@ namespace powerLabel
             if (obj == null || GetType() != obj.GetType()) return false;
 
             MemoryModule memory = (MemoryModule)obj;
-            if (this.capacity == memory.capacity &&
-                this.maxClockspeed == memory.maxClockspeed &&
-                this.formFactor == memory.formFactor &&
-                this.memoryType == memory.memoryType &&
-                this.partNubmer.Trim() == memory.partNubmer.Trim() &&
-                this.serialNubmer.Trim() == memory.serialNubmer.Trim()
-                )
-            {
-                return true;
-            }
-            return false;
+
+            return this.capacity == memory.capacity &&
+                   this.maxClockspeed == memory.maxClockspeed &&
+                   this.formFactor == memory.formFactor &&
+                   this.memoryType == memory.memoryType &&
+                   (this.partNubmer ?? "").Trim() == (memory.partNubmer ?? "").Trim() &&
+                   (this.serialNubmer ?? "").Trim() == (memory.serialNubmer ?? "").Trim();
         }
     }
 }

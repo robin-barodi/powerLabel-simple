@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Management;
 
 namespace powerLabel
@@ -11,19 +12,36 @@ namespace powerLabel
 
         public static Dictionary<uint, string> languageTable = new Dictionary<uint, string>()
         {
-            {9, "EN" },
-            {1031, "DE" },
-            {1033, "US" },
-            {1043, "NL" }
+            { 9u, "EN" },
+            { 1031u, "DE" },
+            { 1033u, "US" },
+            { 1043u, "NL" }
         };
 
         public static OS GetOS()
         {
-            OS os = new OS();
+            OS os = new OS
+            {
+                caption = "Unknown OS",
+                language = "Unknown"
+            };
+
             foreach (ManagementObject item in PSInterface.RunObjectQuery("SELECT * FROM Win32_OperatingSystem"))
             {
-                os.caption = (string)item["Caption"];
-                os.language = languageTable[(uint)item["OSLanguage"]];
+                os.caption = item["Caption"] as string ?? "Unknown OS";
+
+                uint languageCode = (item["OSLanguage"] == null) ? 0u : Convert.ToUInt32(item["OSLanguage"]);
+
+                if (languageTable.ContainsKey(languageCode))
+                {
+                    os.language = languageTable[languageCode];
+                }
+                else
+                {
+                    os.language = "Unknown";
+                }
+
+                break;
             }
 
             return os;
@@ -34,13 +52,9 @@ namespace powerLabel
             if (obj == null || GetType() != obj.GetType()) return false;
 
             OS os = (OS)obj;
-            if (this.caption.Trim() == os.caption.Trim() &&
-                this.language.Trim() == os.language.Trim()
-                )
-            {
-                return true;
-            }
-            return false;
+
+            return (this.caption ?? "").Trim() == (os.caption ?? "").Trim() &&
+                   (this.language ?? "").Trim() == (os.language ?? "").Trim();
         }
     }
 }

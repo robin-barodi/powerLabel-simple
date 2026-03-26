@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Management;
 
 namespace powerLabel
@@ -14,16 +15,23 @@ namespace powerLabel
             List<VideoControllerConfig> list = new List<VideoControllerConfig>();
 
             ManagementObjectCollection returned = PSInterface.RunObjectQuery("SELECT * FROM Win32_VideoController");
+
             foreach (ManagementObject item in returned)
             {
-                VideoControllerConfig videoController = new VideoControllerConfig();
-                videoController.videoController = new VideoController();
-                videoController.videoController.manufacturer = (string)item["AdapterCompatibility"];
-                videoController.videoController.name = (string)item["Caption"];
-                videoController.videoController.vram = (uint)item["AdapterRam"];
-                videoController.computerSystem = system;
-                list.Add(videoController);
+                VideoControllerConfig videoControllerConfig = new VideoControllerConfig();
+                videoControllerConfig.videoController = new VideoController();
+
+                videoControllerConfig.videoController.manufacturer = item["AdapterCompatibility"] as string ?? "";
+                videoControllerConfig.videoController.name = item["Caption"] as string ?? "Unknown GPU";
+                videoControllerConfig.videoController.vram = (item["AdapterRam"] == null)
+                    ? 0u
+                    : Convert.ToUInt32(item["AdapterRam"]);
+
+                videoControllerConfig.computerSystem = system;
+
+                list.Add(videoControllerConfig);
             }
+
             return list;
         }
 
@@ -32,12 +40,8 @@ namespace powerLabel
             if (obj == null || GetType() != obj.GetType()) return false;
 
             VideoControllerConfig videoControllerConfig = (VideoControllerConfig)obj;
-            if (this.videoController.Equals(videoControllerConfig.videoController)
-                )
-            {
-                return true;
-            }
-            return false;
+
+            return this.videoController.Equals(videoControllerConfig.videoController);
         }
     }
 }

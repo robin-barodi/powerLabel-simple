@@ -1,36 +1,55 @@
-﻿using System.Management;
+﻿using System;
+using System.Diagnostics;
+using System.Management;
 
 namespace powerLabel
 {
-    public class PSInterface
+    public static class PSInterface
     {
-        public static ManagementObjectCollection RunObjectQuery(string command)
+        public static ManagementObjectCollection RunObjectQuery(string query)
         {
-            ManagementScope scope = new ManagementScope();
-            scope.Connect();
-
-            //Query system for Operating System information
-            ObjectQuery query = new ObjectQuery(command);
-            ManagementObjectSearcher searcher = new ManagementObjectSearcher(scope, query);
-
-            ManagementObjectCollection queryCollection = searcher.Get();
-            return queryCollection;
+            try
+            {
+                ManagementObjectSearcher searcher = new ManagementObjectSearcher(query);
+                return searcher.Get();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"WMI query failed: {query}\r\n{ex.Message}", ex);
+            }
         }
 
         public static void RunPowershell(string command)
         {
-            var processInfo = new System.Diagnostics.ProcessStartInfo
+            if (string.IsNullOrWhiteSpace(command))
+            {
+                return;
+            }
+
+            ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = "powershell.exe",
-                Arguments = command,
-                RedirectStandardOutput = false,
-                UseShellExecute = false,
-                CreateNoWindow = true
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{command.Replace("\"", "\\\"")}\"",
+                Verb = "runas",
+                UseShellExecute = true,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden
             };
 
-            var p = System.Diagnostics.Process.Start(processInfo);
-            p.WaitForExit();
-        }
+            using (Process process = Process.Start(psi))
+            {
+                if (process == null)
+                {
+                    throw new Exception("Failed to start PowerShell process.");
+                }
 
+                process.WaitForExit();
+
+                if (process.ExitCode != 0)
+                {
+                    throw new Exception($"PowerShell command failed with exit code {process.ExitCode}.\r\nCommand: {command}");
+                }
+            }
+        }
     }
 }

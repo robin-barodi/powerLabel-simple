@@ -8,12 +8,14 @@ namespace powerLabel
     {
         public MemoryConfig()
         {
-
         }
+
         public MemoryConfig(ComputerSystem system)
         {
-            module = new MemoryModule();
+            this.system = system;
+            this.module = new MemoryModule();
         }
+
         public int id { get; set; }
         public MemoryModule module { get; set; }
         public ComputerSystem system { get; set; }
@@ -24,26 +26,35 @@ namespace powerLabel
             List<MemoryConfig> list = new List<MemoryConfig>();
 
             ManagementObjectCollection returned = PSInterface.RunObjectQuery("SELECT * FROM Win32_PhysicalMemory");
+
             foreach (ManagementObject item in returned)
             {
-                MemoryConfig module = new MemoryConfig(system);
+                MemoryConfig memory = new MemoryConfig(system);
 
-                if (!MemoryModule.memoryTypeLookup.ContainsKey((uint)item["SMBIOSMemoryType"]))
-                {
-                    continue;
-                }
+                // Always include module (never skip)
+                memory.module.capacity = (item["Capacity"] == null)
+                    ? 0UL
+                    : Convert.ToUInt64(item["Capacity"]);
 
-                module.module.capacity = (ulong)item["Capacity"];
-                module.currentClockspeed = (item["ConfiguredClockSpeed"] == null) ? 0 : (uint)item["ConfiguredClockSpeed"];
-                module.module.maxClockspeed = (uint)item["Speed"];
-                module.module.formFactor = (UInt16)item["FormFactor"];
-                module.module.memoryType = (uint)item["SMBIOSMemoryType"];
+                memory.currentClockspeed = (item["ConfiguredClockSpeed"] == null)
+                    ? 0u
+                    : Convert.ToUInt32(item["ConfiguredClockSpeed"]);
 
-                module.module.partNubmer = (string)item["PartNumber"];
-                module.module.serialNubmer = (string)item["SerialNumber"];
+                memory.module.maxClockspeed = (item["Speed"] == null)
+                    ? 0u
+                    : Convert.ToUInt32(item["Speed"]);
 
-                list.Add(module);
+                memory.module.formFactor = (item["FormFactor"] == null)
+                    ? (ushort)0
+                    : Convert.ToUInt16(item["FormFactor"]);
+
+                memory.module.memoryType = (item["SMBIOSMemoryType"] == null)
+                    ? 0u
+                    : Convert.ToUInt32(item["SMBIOSMemoryType"]);
+
+                list.Add(memory);
             }
+
             return list;
         }
 
@@ -52,13 +63,9 @@ namespace powerLabel
             if (obj == null || GetType() != obj.GetType()) return false;
 
             MemoryConfig memoryConfig = (MemoryConfig)obj;
-            if (this.module.Equals(memoryConfig.module) &&
-                this.currentClockspeed == memoryConfig.currentClockspeed
-                )
-            {
-                return true;
-            }
-            return false;
+
+            return this.module.Equals(memoryConfig.module) &&
+                   this.currentClockspeed == memoryConfig.currentClockspeed;
         }
     }
 }

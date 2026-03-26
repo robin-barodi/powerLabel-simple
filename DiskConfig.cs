@@ -9,26 +9,22 @@ namespace powerLabel
     {
         public DiskConfig()
         {
-
         }
+
         public DiskConfig(ComputerSystem computerSystem)
         {
-            disk = new Disk();
+            this.disk = new Disk();
             this.computerSystem = computerSystem;
         }
-        public DiskConfig(Disk disk, ComputerSystem computerSystem, int busType)
-        {
-            this.disk = disk;
-            this.computerSystem = computerSystem;
-            this.busType = busTypeEncoding[busType];
-        }
+
         public int id { get; set; }
         public Disk disk { get; set; }
         public ComputerSystem computerSystem { get; set; }
         public bool systemDisk { get; set; }
         public string busType { get; set; }
 
-        private static string[] busTypeEncoding = {
+        private static readonly string[] busTypeEncoding =
+        {
             "Unknown",
             "SCSI",
             "ATAPI",
@@ -52,37 +48,47 @@ namespace powerLabel
         public static List<DiskConfig> GetDisks(ComputerSystem system)
         {
             List<DiskConfig> list = new List<DiskConfig>();
-
             uint osDiskId = 255;
+
             ManagementObjectCollection partitions = PSInterface.RunObjectQuery("SELECT * FROM Win32_DiskPartition");
             foreach (ManagementObject item in partitions)
             {
-                if ((bool)item["BootPartition"])
+                bool isBootPartition = (item["BootPartition"] != null) && Convert.ToBoolean(item["BootPartition"]);
+                if (isBootPartition)
                 {
-                    osDiskId = (uint)item["DiskIndex"];
+                    osDiskId = (item["DiskIndex"] == null) ? 255u : Convert.ToUInt32(item["DiskIndex"]);
+                    break;
                 }
             }
 
-            ManagementScope scope = new ManagementScope("root\\Microsoft\\Windows\\Storage");
+            ManagementScope scope = new ManagementScope(@"root\Microsoft\Windows\Storage");
             scope.Connect();
 
             ObjectQuery query = new ObjectQuery("SELECT * FROM MSFT_PhysicalDisk");
             ManagementObjectSearcher searcher = new ManagementObjectSearcher(scope, query);
-
             ManagementObjectCollection returned = searcher.Get();
+
             foreach (ManagementObject item in returned)
             {
                 DiskConfig diskConfig = new DiskConfig(system);
 
-                diskConfig.disk.model = (string)item["Model"];
-                diskConfig.disk.size = (ulong)item["Size"];
-                diskConfig.busType = busTypeEncoding[(UInt16)item["busType"]];
+                diskConfig.disk.model = item["Model"] as string ?? "Unknown Disk";
+                diskConfig.disk.size = (item["Size"] == null) ? 0UL : Convert.ToUInt64(item["Size"]);
+                diskConfig.disk.serialNumber = item["SerialNumber"] as string ?? "";
 
-                switch ((ushort)item["MediaType"])
+                ushort busTypeCode = (item["BusType"] == null) ? (ushort)0 : Convert.ToUInt16(item["BusType"]);
+                if (busTypeCode < busTypeEncoding.Length)
                 {
-                    case 0:
-                        diskConfig.disk.mediaType = "Unspecified";
-                        break;
+                    diskConfig.busType = busTypeEncoding[busTypeCode];
+                }
+                else
+                {
+                    diskConfig.busType = "Unknown";
+                }
+
+                ushort mediaTypeCode = (item["MediaType"] == null) ? (ushort)0 : Convert.ToUInt16(item["MediaType"]);
+                switch (mediaTypeCode)
+                {
                     case 3:
                         diskConfig.disk.mediaType = "HDD";
                         break;
@@ -93,12 +99,17 @@ namespace powerLabel
                         diskConfig.disk.mediaType = "SCM";
                         break;
                     default:
+                        diskConfig.disk.mediaType = "Unknown";
                         break;
                 }
 
-                diskConfig.disk.serialNumber = (string)item["SerialNumber"];
+                uint deviceId = 999999;
+                if (item["DeviceId"] != null)
+                {
+                    uint.TryParse(item["DeviceId"].ToString(), out deviceId);
+                }
 
-                if (UInt32.Parse((string)item["DeviceId"]) == osDiskId)
+                if (deviceId == osDiskId)
                 {
                     diskConfig.systemDisk = true;
                 }
@@ -111,7 +122,11 @@ namespace powerLabel
                 list.Add(diskConfig);
             }
 
-            return list.OrderByDescending(disk => disk.systemDisk).ThenByDescending(disk => disk.disk.mediaType).ThenBy(disk => disk.disk.size).ToList();
+            return list
+                .OrderByDescending(disk => disk.systemDisk)
+                .ThenByDescending(disk => disk.disk.mediaType == "SSD")
+                .ThenByDescending(disk => disk.disk.size)
+                .ToList();
         }
 
         public override string ToString()
@@ -120,30 +135,34 @@ namespace powerLabel
             string unit;
             string os = "";
 
-            if (shortSize.ToString().Length == 3)
-            {
-                unit = "GB";
-            }
-            else
+            if (shortSize >= 1000)
             {
                 unit = "TB";
                 shortSize = shortSize / 1000;
             }
-
-            if (systemDisk)
+            else
             {
-                if (computerSystem.operatingSystem.caption.Contains("10"))
-                {
-                    os = "+ W10P";
-                }
-                else if (computerSystem.operatingSystem.caption.Contains("11"))
+                unit = "GB";
+            }
+
+            if (systemDisk && computerSystem?.operatingSystem != null)
+            {
+                string osCaption = computerSystem.operatingSystem.caption ?? "";
+                string osLanguage = computerSystem.operatingSystem.language ?? "";
+
+                if (osCaption.Contains("11"))
                 {
                     os = "+ W11P";
                 }
-
-                if (computerSystem.operatingSystem.language != "NL")
+                else if (osCaption.Contains("10"))
                 {
-                    os += " " + computerSystem.operatingSystem.language;
+                    os = "+ W10P";
+                }
+
+                if (!string.IsNullOrWhiteSpace(osLanguage) &&
+                    !osLanguage.Equals("NL", StringComparison.OrdinalIgnoreCase))
+                {
+                    os += " " + osLanguage;
                 }
             }
 
@@ -151,15 +170,18 @@ namespace powerLabel
             {
                 if (busType == "NVMe")
                 {
-                    return $"{shortSize}{unit} {busType} {os} ";
+                    return $"{shortSize}{unit} {busType} {os}".Trim();
                 }
-                return $"{shortSize}{unit} {busType} {disk.mediaType} {os} ";
+
+                return $"{shortSize}{unit} {busType} SSD {os}".Trim();
             }
+
             if (disk.mediaType == "HDD")
             {
-                return $"{shortSize}{unit} {disk.mediaType} {os} ";
+                return $"{shortSize}{unit} HDD {os}".Trim();
             }
-            return $"{shortSize}{unit} {disk.mediaType} {os} ";
+
+            return $"{shortSize}{unit} {disk.mediaType} {os}".Trim();
         }
 
         public override bool Equals(object obj)
@@ -167,14 +189,10 @@ namespace powerLabel
             if (obj == null || GetType() != obj.GetType()) return false;
 
             DiskConfig diskConfig = (DiskConfig)obj;
-            if (this.disk.Equals(diskConfig.disk) &&
-                this.busType.Trim() == diskConfig.busType.Trim() &&
-                this.systemDisk == diskConfig.systemDisk
-                )
-            {
-                return true;
-            }
-            return false;
+
+            return this.disk.Equals(diskConfig.disk) &&
+                   (this.busType ?? "").Trim() == (diskConfig.busType ?? "").Trim() &&
+                   this.systemDisk == diskConfig.systemDisk;
         }
     }
 }

@@ -12,14 +12,10 @@
             if (obj == null || GetType() != obj.GetType()) return false;
 
             VideoController videoController = (VideoController)obj;
-            if (this.manufacturer.Trim() == videoController.manufacturer.Trim() &&
-                this.name.Trim() == videoController.name.Trim() &&
-                this.vram == videoController.vram
-                )
-            {
-                return true;
-            }
-            return false;
+
+            return (this.manufacturer ?? "").Trim() == (videoController.manufacturer ?? "").Trim() &&
+                   (this.name ?? "").Trim() == (videoController.name ?? "").Trim() &&
+                   this.vram == videoController.vram;
         }
     }
 }

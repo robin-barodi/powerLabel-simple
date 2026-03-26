@@ -1,4 +1,5 @@
-﻿using System.Management;
+﻿using System;
+using System.Management;
 
 namespace powerLabel
 {
@@ -11,24 +12,33 @@ namespace powerLabel
 
         public static Motherboard GetMotherboard()
         {
-            Motherboard motherboard = new Motherboard();
+            Motherboard motherboard = new Motherboard
+            {
+                model = "Unknown Model",
+                manufacturer = "Unknown Manufacturer",
+                serialNumber = ""
+            };
 
             foreach (ManagementObject system in PSInterface.RunObjectQuery("SELECT * FROM Win32_ComputerSystem"))
             {
-                motherboard.manufacturer = (string)system["Manufacturer"];
-                if (motherboard.manufacturer.Trim().Equals("Lenovo", System.StringComparison.InvariantCultureIgnoreCase))
+                motherboard.manufacturer = system["Manufacturer"] as string ?? "Unknown Manufacturer";
+
+                if (motherboard.manufacturer.Trim().Equals("Lenovo", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    motherboard.model = (string)system["SystemFamily"];
+                    motherboard.model = system["SystemFamily"] as string ?? "Unknown Model";
                 }
                 else
                 {
-                    motherboard.model = (string)system["Model"];
+                    motherboard.model = system["Model"] as string ?? "Unknown Model";
                 }
+
+                break;
             }
 
             foreach (ManagementObject bios in PSInterface.RunObjectQuery("SELECT * FROM Win32_Bios"))
             {
-                motherboard.serialNumber = (string)bios["SerialNumber"];
+                motherboard.serialNumber = bios["SerialNumber"] as string ?? "";
+                break;
             }
 
             return motherboard;
@@ -39,16 +49,10 @@ namespace powerLabel
             if (obj == null || GetType() != obj.GetType()) return false;
 
             Motherboard mobo = (Motherboard)obj;
-            if (this.model.Trim() == mobo.model.Trim() &&
-                this.manufacturer.Trim() == mobo.manufacturer.Trim() &&
-                this.serialNumber.Trim() == mobo.serialNumber.Trim()
-                )
-            {
-                return true;
-            }
-            return false;
+
+            return (this.model ?? "").Trim() == (mobo.model ?? "").Trim() &&
+                   (this.manufacturer ?? "").Trim() == (mobo.manufacturer ?? "").Trim() &&
+                   (this.serialNumber ?? "").Trim() == (mobo.serialNumber ?? "").Trim();
         }
     }
-
-
 }

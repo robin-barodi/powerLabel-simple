@@ -14,87 +14,143 @@ namespace powerLabel
         public List<DiskConfig> diskConfigs { get; set; }
         public List<VideoControllerConfig> videoControllerConfigs { get; set; }
         public OS operatingSystem { get; set; }
-
         public static ComputerSystem system { get; set; }
 
         public static ComputerSystem GetSystem()
         {
             system = new ComputerSystem();
+
             system.motherboard = Motherboard.GetMotherboard();
             system.processor = Processor.GetProcessor(system);
             system.memoryModules = MemoryConfig.GetMemory(system);
             system.diskConfigs = DiskConfig.GetDisks(system);
             system.videoControllerConfigs = VideoControllerConfig.GetVideoControllers(system);
             system.operatingSystem = OS.GetOS();
+
             return system;
         }
 
         public string getString()
         {
-            if (system == null) return "";
+            if (this == null)
+            {
+                return "";
+            }
 
-            // Model
-            string modelString = motherboard.model;
-            modelString = getShortString(modelString, new string[] {
-        @"(?<ZLine>HP Z\w+) (?<Stupidname>Firefly|Power|Fury|Studio|Mini)*(?:(?!G)[a-zA-Z ])*(?<screensize>\d{2}\w?)?(?:(?![G])[A-Za-z .\d])*(?<generation>G\d+)?",
-        @"(Precision \w+ \w+)",
-        @"(OptiPlex|Vostro|Latitude|XPS|Inspiron|Tower|ProDesk|EliteDesk|Z\d) *(\w+)"
-    });
+            // =========================
+            // SYSTEM / MODEL LINE
+            // =========================
+            string modelString = motherboard?.model ?? "Unknown Model";
+            modelString = getShortString(modelString, new string[]
+            {
+                @"(?<ZLine>HP Z\w+) (?<Stupidname>Firefly|Power|Fury|Studio|Mini)*(?:(?!G)[a-zA-Z ])*(?<screensize>\d{2}\w?)?(?:(?![G])[A-Za-z .\d])*(?<generation>G\d+)?",
+                @"(EliteBook|ProBook|ZBook|OmniBook|Dragonfly|Elite x360)\s*([A-Za-z0-9\- ]+)",
+                @"(Precision \w+ \w+)",
+                @"(Latitude|XPS|Inspiron|Vostro|OptiPlex)\s*(\w+)",
+                @"(ProDesk|EliteDesk)\s*(\w+)"
+            });
 
-            // CPU
-            string cpuString = processor.name;
-            cpuString = getShortString(cpuString, new string[] {
-        @"(Platinum|Gold|Silver|Bronze)(?: )(\w*-*\d+\w*)",
-        @"(\w+-*\d{3,}\w*)(?: )*(v\d)*",
-    });
-            if (processorAmount > 1)
-                cpuString = cpuString.Insert(0, "2x ");
+            modelString = SplitLongFirstLine(modelString, 24);
 
-            // RAM
-            string ramString = memoryModules.Sum(item => Convert.ToInt64(item.module.capacity)) / 1073741824
-                + "GB (" + memoryModules.Count + ") "
-                + MemoryModule.memoryTypeLookup[memoryModules.First().module.memoryType];
+            // =========================
+            // CPU LINE
+            // =========================
+            string cpuString = processor?.name ?? "Unknown CPU";
+            cpuString = getShortString(cpuString, new string[]
+            {
+                @"(Platinum|Gold|Silver|Bronze)(?: )(\w*-*\d+\w*)",
+                @"(\w+-*\d{3,}\w*)(?: )*(v\d)*",
+            });
 
-            // Disks — one per line, OS disk first (already sorted by DiskConfig.GetDisks)
+            if (processorAmount > 1 && !string.IsNullOrWhiteSpace(cpuString))
+            {
+                cpuString = processorAmount + "x " + cpuString;
+            }
+
+            // =========================
+            // RAM LINE
+            // =========================
+            string ramString;
+            if (memoryModules == null || memoryModules.Count == 0)
+            {
+                ramString = "Unknown RAM";
+            }
+            else
+            {
+                long totalGb = memoryModules.Sum(item => Convert.ToInt64(item.module.capacity)) / 1073741824;
+
+                uint ramTypeCode = memoryModules.First().module.memoryType;
+                string ramType = MemoryModule.memoryTypeLookup.ContainsKey(ramTypeCode)
+                    ? MemoryModule.memoryTypeLookup[ramTypeCode]
+                    : "Unknown";
+
+                ramString = totalGb + "GB (" + memoryModules.Count + ") " + ramType;
+            }
+
+            // =========================
+            // DISKS
+            // =========================
             string diskString = "";
             List<string> disks = new List<string>();
             List<string> doneDisks = new List<string>();
-            foreach (DiskConfig disk in system.diskConfigs)
-                disks.Add(disk.ToString());
-            foreach (string disk in disks)
+
+            if (diskConfigs != null)
             {
-                if (!doneDisks.Any(a => a == disk))
+                foreach (DiskConfig disk in diskConfigs)
                 {
-                    int count = disks.Where(a => a == disk).Count();
-                    diskString += (count > 1 ? $"{count}x " : "") + disk.Trim() + "\r\n";
-                    doneDisks.Add(disk);
+                    disks.Add(disk.ToString());
+                }
+
+                foreach (string disk in disks)
+                {
+                    if (!doneDisks.Any(a => a == disk))
+                    {
+                        int count = disks.Where(a => a == disk).Count();
+                        diskString += (count > 1 ? $"{count}x " : "") + disk.Trim() + "\r\n";
+                        doneDisks.Add(disk);
+                    }
                 }
             }
 
-            // GPU — filter out integrated Intel/AMD graphics
+            // =========================
+            // GPU(S) - INCLUDE ALL
+            // =========================
             string gpuString = "";
-            foreach (VideoControllerConfig gpu in videoControllerConfigs)
-            {
-                string name = gpu.videoController.name ?? "";
-                if (name.Contains("Intel") || name.Contains("AMD Radeon(TM)") ||
-                    name.Contains("UHD Graphics") || name.Contains("HD Graphics"))
-                    continue;
+            List<string> doneGpus = new List<string>();
 
-                string shortName = getShortString(name, new string[] {
-            @"(Quadro|RTX|NVS) *(\w+) ?(\d+)?",
-            @"(GeForce) (\wTX?) (\d{3,})(?: (\w+))*"
-        });
-                gpuString += shortName + "\r\n";
+            if (videoControllerConfigs != null)
+            {
+                foreach (VideoControllerConfig gpu in videoControllerConfigs)
+                {
+                    string name = gpu.videoController?.name ?? "Unknown GPU";
+                    string shortName = ShortenGpuName(name).Trim();
+
+                    if (string.IsNullOrWhiteSpace(shortName))
+                    {
+                        continue;
+                    }
+
+                    if (!doneGpus.Contains(shortName))
+                    {
+                        gpuString += shortName + "\r\n";
+                        doneGpus.Add(shortName);
+                    }
+                }
             }
 
-            return modelString + "\r\n"
-                + cpuString + " | " + ramString + "\r\n"
-                + diskString
-                + gpuString.TrimEnd();
+            return modelString + "\r\n" +
+                   cpuString + " | " + ramString + "\r\n" +
+                   diskString +
+                   gpuString.TrimEnd();
         }
 
         public static string getShortString(string input, string[] patterns)
         {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return "";
+            }
+
             foreach (string pattern in patterns)
             {
                 Match match = Regex.Match(input, pattern);
@@ -103,13 +159,68 @@ namespace powerLabel
                     string result = "";
                     for (int i = 1; i < match.Groups.Count; i++)
                     {
-                        if (match.Groups[i].Value != "")
+                        if (!string.IsNullOrWhiteSpace(match.Groups[i].Value))
+                        {
                             result += match.Groups[i].Value + " ";
+                        }
                     }
+
                     return result.Trim();
                 }
             }
-            return input;
+
+            return input.Trim();
+        }
+
+        private static string ShortenGpuName(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return "";
+            }
+
+            string shortened = getShortString(input, new string[]
+            {
+                @"(Quadro|RTX|NVS)\s*([A-Za-z0-9]+)\s*([A-Za-z0-9]+)?",
+                @"(GeForce)\s+([A-Za-z]+)\s+(\d{3,4})\s*([A-Za-z0-9]+)?",
+                @"(Intel)\s+(Arc)\s+([A-Za-z0-9]+)",
+                @"(Intel)\s+(Iris\s+Xe|Iris|UHD\s+Graphics|HD\s+Graphics)\s*([A-Za-z0-9]+)?",
+                @"(AMD|Radeon)\s+([A-Za-z0-9\(\)\- ]+)",
+            });
+
+            return shortened;
+        }
+
+        private static string SplitLongFirstLine(string input, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return "";
+            }
+
+            input = input.Trim();
+
+            if (input.Length <= maxLength)
+            {
+                return input;
+            }
+
+            int splitIndex = input.LastIndexOf(' ', maxLength);
+
+            if (splitIndex <= 0)
+            {
+                splitIndex = input.IndexOf(' ', maxLength);
+            }
+
+            if (splitIndex <= 0)
+            {
+                return input;
+            }
+
+            string firstLine = input.Substring(0, splitIndex).Trim();
+            string secondLine = input.Substring(splitIndex + 1).Trim();
+
+            return firstLine + "\r\n" + secondLine;
         }
     }
 }
