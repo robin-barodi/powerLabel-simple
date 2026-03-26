@@ -16,21 +16,18 @@ namespace powerLabel
         {
             try
             {
-                // Set registry to allow RPC over remote pipes
                 string RPCPath = "HKLM:\\Software\\Policies\\Microsoft\\Windows NT\\Printers\\RPC";
-                PSInterface.RunPowershell($"If (-NOT (Test-Path '{RPCPath}')) {{ New-Item -Path '{RPCPath}' -Force | Out-Null}}");
-                PSInterface.RunPowershell($"New-ItemProperty -Path '{RPCPath}' -Name 'RpcUseNamedPipeProtocol' -Value 1 -PropertyType DWORD -Force");
-
-                // Workaround for W11 24H2
-                PSInterface.RunPowershell("Set-SmbClientConfiguration -EnableInsecureGuestLogons $true -Force");
-                PSInterface.RunPowershell("Set-SmbClientConfiguration -RequireSecuritySignature $false -Force");
-
-                // Add printer
-                PSInterface.RunPowershell($"Add-Printer -ConnectionName \"\\\\{printerHost}\\{printerShareName}\"");
+                string setup = $@"
+                    If (-NOT (Test-Path '{RPCPath}')) {{ New-Item -Path '{RPCPath}' -Force | Out-Null }}
+                    New-ItemProperty -Path '{RPCPath}' -Name 'RpcUseNamedPipeProtocol' -Value 1 -PropertyType DWORD -Force | Out-Null
+                    Set-SmbClientConfiguration -EnableInsecureGuestLogons $true -Force
+                    Set-SmbClientConfiguration -RequireSecuritySignature $false -Force
+                    Add-Printer -ConnectionName '\\{printerHost}\{printerShareName}'
+                ";
+                PSInterface.RunPowershell(setup);
 
                 FrameworkElement e = grid as FrameworkElement;
-                if (e == null)
-                    return;
+                if (e == null) return;
 
                 PrintDialog pd = new PrintDialog();
                 PrintServer myPrintServer = new PrintServer($"\\\\{printerHost}");
@@ -65,27 +62,13 @@ namespace powerLabel
                 pd.PrintVisual(grid, "My Print");
                 e.LayoutTransform = originalScale;
 
-                // Remove printer
-                ConnectionOptions options = new ConnectionOptions();
-                options.EnablePrivileges = true;
-                ManagementScope scope = new ManagementScope(ManagementPath.DefaultPath, options);
-                scope.Connect();
-                ManagementClass printerClass = new ManagementClass("Win32_Printer");
-                ManagementObjectCollection printers = printerClass.GetInstances();
-                foreach (ManagementObject printer in printers)
-                {
-                    if ((string)printer["ShareName"] == printerShareName)
-                    {
-                        printer.Delete();
-                    }
-                }
-
-                // Unset RPC
-                PSInterface.RunPowershell($"New-ItemProperty -Path '{RPCPath}' -Name 'RpcUseNamedPipeProtocol' -Value 0 -PropertyType DWORD -Force");
-
-                // Reverse 24H2 workaround
-                PSInterface.RunPowershell("Set-SmbClientConfiguration -EnableInsecureGuestLogons $false -Force");
-                PSInterface.RunPowershell("Set-SmbClientConfiguration -RequireSecuritySignature $true -Force");
+                string teardown = $@"
+                    Remove-Printer -Name '\\{printerHost}\{printerShareName}' -ErrorAction SilentlyContinue
+                    New-ItemProperty -Path '{RPCPath}' -Name 'RpcUseNamedPipeProtocol' -Value 0 -PropertyType DWORD -Force | Out-Null
+                    Set-SmbClientConfiguration -EnableInsecureGuestLogons $false -Force
+                    Set-SmbClientConfiguration -RequireSecuritySignature $true -Force
+                ";
+                PSInterface.RunPowershell(teardown);
             }
             catch (Exception ex)
             {
