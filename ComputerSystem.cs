@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -56,6 +56,7 @@ namespace powerLabel
             // CPU LINE
             // =========================
             string cpuString = processor?.name ?? "Unknown CPU";
+            cpuString = CleanCpuName(cpuString);
             cpuString = getShortString(cpuString, new string[]
             {
                 @"(Platinum|Gold|Silver|Bronze)(?: )(\w*-*\d+\w*)",
@@ -142,6 +143,18 @@ namespace powerLabel
                    cpuString + " | " + ramString + "\r\n" +
                    diskString +
                    gpuString.TrimEnd();
+        }
+
+        private static string CleanCpuName(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return input;
+
+            // Remove trademark/copyright symbols and noise words
+            input = Regex.Replace(input, @"\(R\)|\(TM\)|®|™", "", RegexOptions.IgnoreCase);
+            input = Regex.Replace(input, @"\b(Intel|AMD|Core|Processor|CPU|with|Radeon|Graphics)\b", "", RegexOptions.IgnoreCase);
+            input = Regex.Replace(input, @"\s{2,}", " ");
+
+            return input.Trim();
         }
 
         public static string getShortString(string input, string[] patterns)
