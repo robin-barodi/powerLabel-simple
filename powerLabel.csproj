@@ -10,6 +10,7 @@
 		<ApplicationIcon>isometrix pixel art pc high res.ico</ApplicationIcon>
 		<DisableFody Condition="'$(Configuration)' == 'Debug'">true</DisableFody>
 		<Platforms>AnyCPU;x64</Platforms>
+		<PublishReadyToRun>true</PublishReadyToRun>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 		<DebugType>embedded</DebugType>

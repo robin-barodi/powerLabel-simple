@@ -38,7 +38,7 @@ namespace powerLabel
             }
 
             // =========================
-            // SYSTEM / MODEL LINE
+            // MODEL LINE
             // =========================
             string modelString = motherboard?.model ?? "Unknown Model";
             modelString = getShortString(modelString, new string[]
@@ -53,7 +53,7 @@ namespace powerLabel
             modelString = SplitLongFirstLine(modelString, 24);
 
             // =========================
-            // CPU LINE
+            // CPU
             // =========================
             string cpuString = processor?.name ?? "Unknown CPU";
             cpuString = CleanCpuName(cpuString);
@@ -69,7 +69,7 @@ namespace powerLabel
             }
 
             // =========================
-            // RAM LINE
+            // RAM
             // =========================
             string ramString;
             if (memoryModules == null || memoryModules.Count == 0)
@@ -85,7 +85,8 @@ namespace powerLabel
                     ? MemoryModule.memoryTypeLookup[ramTypeCode]
                     : "Unknown";
 
-                ramString = totalGb + "GB (" + memoryModules.Count + ") " + ramType;
+                // FIX: remove spaces around parentheses
+                ramString = totalGb + "GB(" + memoryModules.Count + ")" + ramType;
             }
 
             // =========================
@@ -114,7 +115,7 @@ namespace powerLabel
             }
 
             // =========================
-            // GPU(S) - INCLUDE ALL
+            // GPU
             // =========================
             string gpuString = "";
             List<string> doneGpus = new List<string>();
@@ -139,8 +140,9 @@ namespace powerLabel
                 }
             }
 
+            // FIX: remove spaces around |
             return modelString + "\r\n" +
-                   cpuString + " | " + ramString + "\r\n" +
+                   cpuString + "|" + ramString + "\r\n" +
                    diskString +
                    gpuString.TrimEnd();
         }
@@ -149,7 +151,6 @@ namespace powerLabel
         {
             if (string.IsNullOrWhiteSpace(input)) return input;
 
-            // Remove trademark/copyright symbols and noise words
             input = Regex.Replace(input, @"\(R\)|\(TM\)|®|™", "", RegexOptions.IgnoreCase);
             input = Regex.Replace(input, @"\b(Intel|AMD|Core|Processor|CPU|with|Radeon|Graphics)\b", "", RegexOptions.IgnoreCase);
             input = Regex.Replace(input, @"\s{2,}", " ");
