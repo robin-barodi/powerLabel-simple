@@ -22,6 +22,7 @@ namespace powerLabel
         public ComputerSystem computerSystem { get; set; }
         public bool systemDisk { get; set; }
         public string busType { get; set; }
+        public uint pcieGen { get; set; } // 0 = unknown; 3/4/5 when detectable
 
         private static readonly string[] busTypeEncoding =
         {
@@ -103,6 +104,23 @@ namespace powerLabel
                         break;
                 }
 
+                // Try to read PCIe generation for NVMe drives (Windows 10 1903+ only)
+                diskConfig.pcieGen = 0;
+                if (diskConfig.busType == "NVMe")
+                {
+                    try
+                    {
+                        object genVal = item["PCIeGen"];
+                        if (genVal != null)
+                        {
+                            uint gen = Convert.ToUInt32(genVal);
+                            if (gen >= 3 && gen <= 5)
+                                diskConfig.pcieGen = gen;
+                        }
+                    }
+                    catch { /* property not available on this OS version, leave as 0 */ }
+                }
+
                 uint deviceId = 999999;
                 if (item["DeviceId"] != null)
                 {
@@ -170,7 +188,8 @@ namespace powerLabel
             {
                 if (busType == "NVMe")
                 {
-                    return $"{shortSize}{unit} {busType} {os}".Trim();
+                    string genSuffix = (pcieGen >= 3 && pcieGen <= 5) ? $"-G{pcieGen}" : "";
+                    return $"{shortSize}{unit} NVMe{genSuffix} {os}".Trim();
                 }
 
                 return $"{shortSize}{unit} {busType} SSD {os}".Trim();
